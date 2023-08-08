@@ -1,0 +1,47 @@
+@startuml
+title CreateATicketActivity
+
+actor User
+participant "CreateATicketActivity" as CreateActivity
+participant "AuthorizationService" as Authorization
+participant "DataValidationService" as DataValidation
+participant Repository
+database Database
+
+User -> CreateActivity: Create a ticket request
+
+CreateActivity -> Authorization: Check authorization
+Activate Authorization
+Authorization -> Authorization: Validate user credentials
+alt Authorization success
+    CreateActivity -> DataValidation: Perform data validation
+    Activate DataValidation
+    DataValidation -> DataValidation: Validate ticket data
+    alt Data Validation success
+        DataValidation --> CreateActivity: Data validation successful
+        CreateActivity -> Repository: Save ticket data
+        Repository -> Database: Save ticket data
+        Activate Database
+
+        alt Save Ticket success
+            Database --> Repository: Success Response
+            Repository --> CreateActivity : Ticket data saved successfully
+            CreateActivity --> User: 200 - Ticket created successfully
+        else Database error
+            Database --> Repository: Database error response
+            Repository --> CreateActivity : Database error occurred
+            CreateActivity --> User: 500 - Internal Server Error
+        end
+
+    else Data Validation error
+        DataValidation --> CreateActivity: Data validation error
+        CreateActivity --> User: 422 - Data validation error
+    end
+else Authorization failure
+    Authorization --> CreateActivity: Authorization failed
+    CreateActivity --> User: 401 - Unauthorized user
+end
+@enduml
+
+
+
